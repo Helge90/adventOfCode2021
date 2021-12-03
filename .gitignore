@@ -1,0 +1,10 @@
+target/
+build/
+out/
+libs/
+.gradle
+.idea
+*.iws
+*.iml
+*.ipr
+*.env

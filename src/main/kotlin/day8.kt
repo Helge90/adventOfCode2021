@@ -8,14 +8,26 @@ class Day8(input: String) {
         fun doesNotHaveCharactarsIn(other: Number) =
             other.segment.fold("") { acc, c ->
                 if (!segment.contains(c)) acc + c else acc
-
             }
     }
 
-    val signalAndSegment = input.split("\n").map {
+    private val signalAndSegment = input.split("\n").map {
         val c = it.split(" | ")
         Pair(c[0].split(" "), c[1].split(" "))
     }
+
+    private val numbers = mapOf(
+        "abcefg" to 0,
+        "cf" to 1,
+        "acdeg" to 2,
+        "acdfg" to 3,
+        "bcdf" to 4,
+        "abdfg" to 5,
+        "abdefg" to 6,
+        "acf" to 7,
+        "abcdefg" to 8,
+        "abcdfg" to 9
+    )
 
 
     fun day8Part1() =
@@ -24,72 +36,45 @@ class Day8(input: String) {
         }.filterNotNull().size
 
     fun day8Part2(): Int {
+        val decoder: List<Map<Char, Char>> = signalAndSegment.map { it.first.map { findDigitsForSignal(it) } }
+            .map { findZeroSixFiveAndNine(it) }
+            .map { findTwoAndThree(it) }
+            .map { decodeSignals(it) }
 
-        val numbers = mapOf(
-            "abcefg" to 0,
-            "cf" to 1,
-            "acdeg" to 2,
-            "acdfg" to 3,
-            "bcdf" to 4,
-            "abdfg" to 5,
-            "abdefg" to 6,
-            "acf" to 7,
-            "abcdefg" to 8,
-            "abcdfg" to 9
-        )
-
-        val converted: List<List<Number>> = signalAndSegment.map { it.first.map { findDigitsForSignal(it) } }
-        //val signalsToDecode = converted.filter { it.second == null }
-        val more = converted.map { findZeroSixFiveAndNine(it) }
-        more.map { findTwoThreeAndFout(it) }
-        val decoder = more.map { decodeSignals(it) }
-
-        val second = signalAndSegment.mapIndexed { index, pair ->
-            pair.second.map {
-                it.map { char ->
-                    val c = decoder[index][char]
-                    if(c == null) println("feil ved $index, $char")
-                    //   println("$char blir til $c")
-                    c!!
-                }.sorted().joinToString(separator = "")
-            }
+        return signalAndSegment.map { it.second }.zip(decoder).sumOf { (strings, decoder) ->
+            strings.map { numbers[it.decodeString(decoder)] }.joinToString(separator = "").toInt()
         }
-
-        val result = second.mapIndexed {index, s ->
-            val numb = s.map {
-                val n = numbers[it]
-                if(n == null) println("feil ved $it på index $index")
-                n
-            }
-            numb.joinToString(separator = "").toInt()
-        }
-        return result.sum()
-
     }
+
+    private fun String.decodeString(decoder: Map<Char, Char>): String =
+        this.map { decoder[it]!! }.sorted().joinToString(separator = "")
 
     private fun decodeSignals(values: List<Number>): Map<Char, Char> {
         val decoded = mutableMapOf<Char, Char>()
+        val zero = values.single { it.number == 0 }
+        val one = values.single { it.number == 1 }
+        val two = values.single { it.number == 2 }
+        val three = values.single { it.number == 3 }
+        val four = values.single { it.number == 4 }
+        val five = values.single { it.number == 5 }
+        val six = values.single { it.number == 6 }
+        val seven = values.single { it.number == 7 }
+        val eight = values.single { it.number == 8 }
+        val nine = values.single { it.number == 9 }
 
-        val zero = values.first { it.number == 0 }
-        val one = values.first { it.number == 1 }
-        val two = values.first { it.number == 2 }
-        val three = values.first { it.number == 3 }
-        val four = values.first { it.number == 4 }
-        val five = values.first { it.number == 5 }
-        val six = values.first { it.number == 6 }
-        val seven = values.first { it.number == 7 }
-        val eight = values.first { it.number == 8 }
-        val nine = values.first { it.number == 9 }
 
+        decoded['a'] = one.doesNotHaveCharactarsIn(seven).single()
+        decoded['c'] = six.doesNotHaveCharactarsIn(eight).single()
+        decoded['d'] = zero.doesNotHaveCharactarsIn(eight).single()
+        decoded['e'] = nine.doesNotHaveCharactarsIn(eight).single()
 
-        decoded['a'] = one.doesNotHaveCharactarsIn(seven).let { if (it.length >1) throw RuntimeException() else it[0] }
-        decoded['c'] = six.doesNotHaveCharactarsIn(eight).let { if (it.length >1) throw RuntimeException() else it[0] }
-        decoded['d'] = zero.doesNotHaveCharactarsIn(eight).let { if (it.length >1) throw RuntimeException() else it[0] }
-        decoded['e'] = nine.doesNotHaveCharactarsIn(eight).let { if (it.length >1) throw RuntimeException() else it[0] }
-
-        decoded['f'] = one.segment.filterNot { it == decoded['c'] }.let { if (it.length >1) throw RuntimeException() else it.first() }
-        decoded['b'] = four.segment.filterNot {it == decoded['e'] || it == decoded['c'] || it == decoded['d'] || it == decoded['f'] }.let { if (it.length >1) throw RuntimeException() else it.first() }
-        decoded['g'] = two.segment.filterNot { it == decoded['a'] || it == decoded['c'] || it == decoded['d'] || it == decoded['e'] }.let { if (it.length >1) throw RuntimeException() else it.first() }
+        decoded['f'] = one.segment.filterNot { it == decoded['c'] }.single()
+        decoded['b'] =
+            four.segment.filterNot { it == decoded['e'] || it == decoded['c'] || it == decoded['d'] || it == decoded['f'] }
+                .single()
+        decoded['g'] =
+            two.segment.filterNot { it == decoded['a'] || it == decoded['c'] || it == decoded['d'] || it == decoded['e'] }
+                .single()
 
         return decoded.entries.associateBy({ it.value }) { it.key }
 
@@ -108,34 +93,27 @@ class Day8(input: String) {
         )
 
     private fun findZeroSixFiveAndNine(set: List<Number>): List<Number> {
-        val one = set.first { it.number == 1 }
-        val eight = set.first { it.number == 8 }
-        val four = set.first { it.number == 4 }
-        val six = set.filter { it.segment.length == 6 && it.missingChars(one) > 0 }.let { if (it.size > 1) throw RuntimeException() else it.first() }
+        val one = set.single { it.number == 1 }
+        val four = set.single { it.number == 4 }
+        val six = set.single { it.segment.length == 6 && it.missingChars(one) > 0 }
         six.number = 6
-        val five = set.filter { it.segment.length == 5 && it.missingChars(six) == 1 }.let { if (it.size > 1) throw RuntimeException() else it.first() }
+        val five = set.single { it.segment.length == 5 && it.missingChars(six) == 1 }
         five.number = 5
         val nine = set.filter { it.segment.length == 6 && it.missingChars(one) == 0 && it.missingChars(six) == 1 }.let {
             if (it.size > 1) {
-                //9 og 0
-                val filtered = it.filter {
-                    it.doesNotHaveCharactarsIn(four) == ""
-                }
-                filtered.first()
-            }
-            else it.first()
+                it.single { it.doesNotHaveCharactarsIn(four) == "" }
+            } else it.first()
         }
         nine.number = 9
-        val zero = set.filter { it.segment.length == 6 && it != six && it != nine }.let { if (it.size > 1) throw RuntimeException() else it.first() }
+        val zero = set.single { it.segment.length == 6 && it != six && it != nine }
         zero.number = 0
         return set
     }
 
-    private fun findTwoThreeAndFout(set: List<Number>): List<Number> {
-        val one = set.filter { it.number == 1 }.let { if (it.size > 1) throw RuntimeException() else it.first() }
-        val two = set.filter { it.segment.length == 5 && it.number == null && it.missingChars(one) == 1 }.let { if (it.size > 1) throw RuntimeException() else it.first() }
-        two.number = 2
-        set.filter { it.number == null }.let { if (it.size > 1) throw RuntimeException() else it.first() }.number = 3
+    private fun findTwoAndThree(set: List<Number>): List<Number> {
+        val one = set.single { it.number == 1 }
+        set.single { it.segment.length == 5 && it.number == null && it.missingChars(one) == 1 }.number = 2
+        set.single { it.number == null }.number = 3
         return set
     }
 

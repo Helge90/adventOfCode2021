@@ -1,6 +1,8 @@
 import java.util.Stack
 
 class Day10(input: String) {
+    class CorruptedChunkException(val unexpectedChar: String) : RuntimeException()
+
     val input = input.split("\n")
 
     private val opposit = mapOf(
@@ -43,33 +45,26 @@ class Day10(input: String) {
                 it[it.size / 2]
             }
 
-    private fun findError(string: String): String {
-        val stack: Stack<Char> = Stack<Char>()
-        string.forEach { char ->
-            when {
-                stack.isEmpty() -> stack.push(char)
-                stack.peek() == opposit[char] -> stack.pop()
-                openers.contains(char) -> stack.push(char)
-                else -> return char.toString()
-            }
-        }
-        return ""
-    }
+    private fun findError(string: String): String =
+        runCatching { analyzeChunk(string) }.exceptionOrNull()?.let {
+            (it as CorruptedChunkException).unexpectedChar
+        } ?: ""
 
-    private fun findMissingClosers(string: String): String? {
-        val stack: Stack<Char> = Stack<Char>()
-        string.forEach { char ->
-            when {
-                stack.isEmpty() -> stack.push(char)
-                stack.peek() == opposit[char] -> stack.pop()
-                openers.contains(char) -> stack.push(char)
-                else -> return null
+    private fun findMissingClosers(string: String): String? =
+        runCatching { analyzeChunk(string) }.getOrNull()
+
+    private fun analyzeChunk(string: String): String =
+        Stack<Char>().also {
+            string.forEach { char ->
+                when {
+                    it.isEmpty() -> it.push(char)
+                    it.peek() == opposit[char] -> it.pop()
+                    openers.contains(char) -> it.push(char)
+                    else -> throw CorruptedChunkException(char.toString())
+                }
             }
-        }
-        return stack.map {
-            opposit[it]!!
-        }.reversed().joinToString(separator = "")
-    }
+        }.map { opposit[it]!! }.reversed().joinToString(separator = "")
+
 
 }
 

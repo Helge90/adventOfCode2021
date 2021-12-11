@@ -1,6 +1,5 @@
 class Day11(input: String) {
-
-    class DumboOctopus(var energy: Int, var flashed: Boolean, var neighbors: List<DumboOctopus>) {
+    class DumboOctopus(var energy: Int, var flashed: Boolean = false, var neighbors: List<DumboOctopus> = emptyList()) {
         fun flash(): Int {
             if (flashed) return 0 else energy += 1
             if (energy > 9) {
@@ -12,35 +11,23 @@ class Day11(input: String) {
         }
     }
 
-    private val octopus = input.split("\n").mapIndexed { y, xPos ->
-        xPos.mapIndexed { _, energy ->
-            DumboOctopus(energy.digitToInt(), false, listOf())
-        }
+    private val octopus = input.split("\n").map {
+        it.map { energy -> DumboOctopus(energy.digitToInt()) }
     }.let { findNeighbors(it) }.flatten()
 
 
-    fun day11Part1(): Int {
-        return (1..100).sumOf { _ ->
-            octopus.forEach {
-                it.flashed = false
-            }
-            octopus.sumOf {
-                it.flash()
-            }
-        }
+    fun day11Part1(): Int = (1..100).sumOf { _ ->
+        octopus.forEach { it.flashed = false }
+        octopus.sumOf { it.flash() }
     }
 
     fun day11Part2(): Int {
         (1..1000).forEach { day ->
-            octopus.forEach {
-                it.flashed = false
-            }
-            octopus.sumOf { it.flash() }
-                .let { if (it == 100) return day }
+            octopus.forEach { it.flashed = false }
+            if (octopus.sumOf { it.flash() } == 100) return day
         }
         throw RuntimeException()
     }
-
 
     private fun findNeighbors(octopus: List<List<DumboOctopus>>) =
         octopus.mapIndexed { y, length ->

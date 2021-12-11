@@ -1,4 +1,3 @@
-import java.util.EmptyStackException
 import java.util.Stack
 
 class Day10(input: String) {
@@ -16,73 +15,63 @@ class Day10(input: String) {
     )
     private val openers = listOf('(', '[', '{', '<')
 
-    fun day10Part1(): Int {
-        var errors = ""
-        input.map { string ->
-            val stack: Stack<Char> = Stack<Char>()
-            stack.push(string[0])
-            string.drop(1).forEach { char ->
-                try {
-                    if (stack.peek() == opposit[char]) stack.pop()
-                    else if (openers.contains(char)) stack.push(char)
-                    else {
-                        errors += char
-                        return@map
-                    }
-                } catch (ex: EmptyStackException) {
-                    return@map
-                }
-            }
-        }
-
-        return errors.fold(0) { acc, char ->
-            acc + when (char) {
-                ')' -> 3
-                ']' -> 57
-                '}' -> 1197
-                '>' -> 25137
-                else -> throw RuntimeException()
-            }
-        }
-    }
-
-    fun day10Part2(): Long {
-
-        val chars = input.mapNotNull { string ->
-            val stack: Stack<Char> = Stack<Char>()
-            stack.push(string[0])
-            string.drop(1).forEach { char ->
-                try {
-                    if (stack.peek() == opposit[char]) stack.pop()
-                    else if (openers.contains(char)) stack.push(char)
-                    else {
-                        return@mapNotNull null
-                    }
-                } catch (ex: EmptyStackException) {
-                    stack.push(char)
-                }
-            }
-            stack.map {
-                opposit[it]!!
-            }.reversed().joinToString(separator = "")
-        }
-
-        return chars.map { string ->
-            string.fold(0L) { acc, char ->
-                acc * 5 + when (char) {
-                    ')' -> 1
-                    ']' -> 2
-                    '}' -> 3
-                    '>' -> 4
+    fun day10Part1(): Int =
+        input.joinToString(separator = "") { findError(it) }
+            .fold(0) { acc, char ->
+                acc + when (char) {
+                    ')' -> 3
+                    ']' -> 57
+                    '}' -> 1197
+                    '>' -> 25137
                     else -> throw RuntimeException()
                 }
             }
-        }.sorted().let {
-            it[it.size / 2]
-        }
-    }
-}
 
+    fun day10Part2(): Long =
+        input.mapNotNull { findMissingClosers(it) }
+            .map { missingClosers ->
+                missingClosers.fold(0L) { acc, char ->
+                    acc * 5 + when (char) {
+                        ')' -> 1
+                        ']' -> 2
+                        '}' -> 3
+                        '>' -> 4
+                        else -> throw RuntimeException()
+                    }
+                }
+            }.sorted().let {
+                it[it.size / 2]
+            }
+
+    private fun findError(string: String): String {
+        val stack: Stack<Char> = Stack<Char>()
+        string.forEach { char ->
+            when {
+                stack.isEmpty() -> stack.push(char)
+                stack.peek() == opposit[char] -> stack.pop()
+                openers.contains(char) -> stack.push(char)
+                else -> return char.toString()
+            }
+        }
+        return ""
+    }
+
+    private fun findMissingClosers(string: String): String? {
+        val stack: Stack<Char> = Stack<Char>()
+        string.forEach { char ->
+            when {
+                stack.isEmpty() -> stack.push(char)
+                stack.peek() == opposit[char] -> stack.pop()
+                openers.contains(char) -> stack.push(char)
+                else -> return null
+            }
+        }
+        return stack.map {
+            opposit[it]!!
+        }.reversed().joinToString(separator = "")
+    }
+
+}
 
 val day10TestInput = """
     [({(<(())[]>[[{[]{<()<>>
